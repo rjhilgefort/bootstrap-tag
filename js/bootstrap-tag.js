@@ -1,8 +1,11 @@
 /* ==========================================================
- * bootstrap-tag.js v2.3.0
- * https://github.com/fdeschenes/bootstrap-tag
+ * bootstrap-tag.js v2.3.1
+ * https://github.com/rjhilgefort/bootstrap-tag
  * ==========================================================
  * Copyright 2012 Francois Deschenes.
+ *
+ * Contributions:
+ * @rjhilgefort
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +27,7 @@
 	var Tag = function ( element, options ) {
 		this.element = $(element);
 		this.options = $.extend(true, {}, $.fn.tag.defaults, options);
-		this.values = $.grep($.map(this.element.val().split(','), $.trim), function ( value ) { return value.length > 0; });
+		this.values = $.grep($.map(this.element.val().split(this.options.delimiter), $.trim), function ( value ) { return value.length > 0; });
 		this.show();
 	};
 
@@ -63,12 +66,25 @@
 					that.skip = false;
 				})
 				.on('keydown', function ( event ) {
-					if ( event.keyCode == 188 || event.keyCode == 13 || event.keyCode == 9 ) {
+					var keyCodeMap = {
+						delimiter: null,
+						enter: 13,
+						tab: 9,
+						backspace: 8
+					};
+					//TODO get code from character
+					switch (that.options.delimiter) {
+						case ';': keyCodeMap.delimiter = 186; break;
+						case ',': keyCodeMap.delimiter = 188; break;
+						default: keyCodeMap.delimiter = 188; break;
+					}
+
+					if ( event.keyCode == keyCodeMap.delimiter || event.keyCode == keyCodeMap.enter || event.keyCode == keyCodeMap.tab ) {
 						if ( $.trim($(this).val()) && ( !that.element.siblings('.typeahead').length || that.element.siblings('.typeahead').is(':hidden') ) ) {
-							if ( event.keyCode != 9 ) event.preventDefault();
+							if ( event.keyCode != keyCodeMap.tab ) event.preventDefault();
 							that.process();
-						} else if ( event.keyCode == 188 ) {
-							if ( !that.options.autocompleteOnComma ) {
+						} else if ( event.keyCode == keyCodeMap.delimiter ) {
+							if ( !that.options.autocompleteOnDelimiter ) {
 								event.preventDefault();
 								that.process();
 							}
@@ -80,7 +96,7 @@
 								event.preventDefault();
 							}
 						}
-					} else if ( !$.trim($(this).val()) && event.keyCode == 8 ) {
+					} else if ( !$.trim($(this).val()) && event.keyCode == keyCodeMap.backspace ) {
 						var count = that.element.siblings('.tag').length;
 						if (count) {
 							var tag = that.element.siblings('.tag:eq(' + (count - 1) + ')');
@@ -135,6 +151,7 @@
 			)
 			.insertBefore(that.element);
 		},
+
 		add: function ( value ) {
 			var that = this;
 
@@ -153,20 +170,22 @@
 			this.values.push(value);
 			this.createBadge(value);
 
-			this.element.val(this.values.join(', '));
+			this.element.val(this.values.join(that.options.delimiter + ' '));
 			this.element.trigger('added', [value]);
 		},
+
 		remove: function ( index ) {
 			if ( index >= 0 ) {
 				var value = this.values.splice(index, 1);
 				this.element.siblings('.tag:eq(' + index + ')').remove();
-				this.element.val(this.values.join(', '));
+				this.element.val(this.values.join(this.options.delimiter + ' '));
 
 				this.element.trigger('removed', [value]);
 			}
 		},
+
 		process: function () {
-			var values = $.grep($.map(this.input.val().split(','), $.trim),
+			var values = $.grep($.map(this.input.val().split(this.options.delimiter), $.trim),
 					function ( value ) { return value.length > 0; }),
 					that = this;
 
@@ -175,6 +194,7 @@
 			});
 			this.input.val('');
 		},
+
 		skip: false
 	};
 
@@ -194,7 +214,8 @@
 	$.fn.tag.defaults = {
 		allowDuplicates: false,
 		caseInsensitive: true,
-		autocompleteOnComma: false,
+		delimiter: ',', // ',' or ';' for now. //TODO get keyCode from char
+		autocompleteOnDelimiter: false,
 		placeholder: '',
 		source: []
 	};
